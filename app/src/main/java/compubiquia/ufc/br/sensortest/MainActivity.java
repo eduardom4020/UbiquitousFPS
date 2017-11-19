@@ -23,15 +23,47 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     float[] vGeomagnetic;
     float[] vTilt;
 
-    float lastAngle = 0;
-
     TextView textView;
 
     boolean shoot = false;
 
     MediaPlayer shootMP;
 
-    float actual_tilt = 0;
+    float prev_angle;
+    float prev_tilt;
+
+    float tilt = 0;
+
+    float angle = 0;
+    /*float roll = 0;
+    float pitch = 0;*/
+
+    //private Handler angle_handler = new Handler();
+    private Handler tilt_handler = new Handler();
+    /*
+    private Runnable angle_runnable = new Runnable() {
+        @Override
+        public void run() {
+            prev_angle = angle;
+            angle_handler.postDelayed(angle_runnable, 200);
+        }
+    };
+
+    private Runnable tilt_runnable = new Runnable() {
+        @Override
+        public void run() {
+            prev_tilt = pitch;
+            tilt_handler.postDelayed(tilt_runnable, 200);
+        }
+    };*/
+
+    private Runnable tilt_runnable = new Runnable() {
+        @Override
+        public void run() {
+            prev_tilt = tilt;
+            tilt_handler.postDelayed(tilt_runnable, 80);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +78,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         textView = (TextView) findViewById(R.id.angle);
 
         shootMP = MediaPlayer.create(this, R.raw.shoot);
+
+        //angle_handler.post(angle_runnable);
+        tilt_handler.post(tilt_runnable);
     }
 
     protected void onResume() {
@@ -53,13 +88,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sensor_manager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         sensor_manager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_NORMAL);
         sensor_manager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
+
+        //angle_handler.post(angle_runnable);
+        tilt_handler.post(tilt_runnable);
     }
 
     protected void onPause() {
         super.onPause();
         sensor_manager.unregisterListener(this);
-    }
 
+        //angle_handler.removeCallbacks(angle_runnable);
+        tilt_handler.removeCallbacks(tilt_runnable);
+    }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -79,32 +119,56 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     float orientation[] = new float[3];
                     SensorManager.getOrientation(rot, orientation);
 
-                    float angle = (float) Math.toDegrees(orientation[0]); // azimut
+                    angle = (float) Math.toDegrees(orientation[0]); // azimut
                     angle = 180.0f - Math.round(angle);
 
                     float roll = (float) Math.toDegrees(orientation[2]);
 
                     float pitch = (float) Math.toDegrees(orientation[1]);
 
-
-                    if (Math.abs(angle - lastAngle) > 3.0f && Math.abs(pitch) <= 75.0f && Math.abs(roll) > 20.0f) {
+                    /*if (Math.abs(angle - prev_angle) > 3.0f && Math.abs(pitch) <= 75.0f && Math.abs(roll) > 20.0f) {
                         //textView.setText("Angulo: " + (int) angle + " Roll: " + (int) roll + " Pitch: " + (int) pitch);
-                        lastAngle = angle;
-                    }
+                    }*/
+
+                    /*if(prev_tilt - pitch >= 40.0f && !shoot) {
+                        textView.setText((prev_tilt - pitch) + "");
+
+                        if(shootMP.isPlaying()) {
+                            shootMP.stop();
+                            try {
+                                shootMP.prepare();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        shootMP.start();
+                        shoot = true;
+
+                        new Handler().postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                //textView.setText("");
+                                shoot = false;
+                            }
+                        }, 300);
+                    }*/
                 }
             }
 
             if(vTilt != null) {
                 //read actual tilt value
-                new Handler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        actual_tilt = vTilt[2];
-                    }
-                }, 300);
+//                new Handler().postDelayed(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        prev_tilt = vTilt[2];
+//                    }
+//                }, 300);
 
-                if(vTilt[2] < -3.0f && vTilt[2] - actual_tilt < -5.0f && !shoot) {
-                    textView.setText(vTilt[2] + "");
+                tilt = vTilt[2];
+
+                if(tilt < -3.0f && tilt - prev_tilt < -5.0f && !shoot) {
+                    textView.setText(tilt + "");
 
                     if(shootMP.isPlaying()) {
                         shootMP.stop();
