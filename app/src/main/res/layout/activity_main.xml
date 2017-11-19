@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="compubiquia.ufc.br.sensortest.MainActivity">
+
+    <TextView
+        android:id="@+id/angle"
+        android:layout_width="347dp"
+        android:layout_height="465dp"
+        android:textAlignment="center"
+        android:gravity="center"
+        android:textSize="32dp"
+        android:text="Aponte o celular para frente e atire ao fazer o gesto de um recuo."
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout_editor_absoluteY="-169dp"
+        tools:layout_editor_absoluteX="-67dp" />
+
+</android.support.constraint.ConstraintLayout>
