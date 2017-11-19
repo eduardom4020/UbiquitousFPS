@@ -31,6 +31,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     MediaPlayer shootMP;
 
+    float actual_tilt = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -86,15 +88,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
                     if (Math.abs(angle - lastAngle) > 3.0f && Math.abs(pitch) <= 75.0f && Math.abs(roll) > 20.0f) {
-                        //textView.setText("Angulo: " + (int) angle + "º");
+                        //textView.setText("Angulo: " + (int) angle + " Roll: " + (int) roll + " Pitch: " + (int) pitch);
                         lastAngle = angle;
                     }
                 }
             }
 
             if(vTilt != null) {
-                if(vTilt[2] < -2.0f && !shoot) {
-                    //textView.setText("Bang");
+                //read actual tilt value
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        actual_tilt = vTilt[2];
+                    }
+                }, 300);
+
+                if(vTilt[2] < -3.0f && vTilt[2] - actual_tilt < -5.0f && !shoot) {
+                    textView.setText(vTilt[2] + "");
+
                     if(shootMP.isPlaying()) {
                         shootMP.stop();
                         try {
@@ -113,7 +124,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             //textView.setText("");
                             shoot = false;
                         }
-                    }, 200);
+                    }, 300);
                 }
             }
         }
