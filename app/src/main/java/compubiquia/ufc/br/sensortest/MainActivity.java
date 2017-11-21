@@ -31,14 +31,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     MediaPlayer shootMP;
 
     float prev_angle;
-    float prev_pitch;
+    float prev_scope;
     float prev_tilt;
 
     float tilt = 0;
 
-    float angle = 0;
-    float roll = 0;
-    float pitch = 0;
+    float compass = 0;
+    float scope_angle = 0;
+
+    boolean scope_lock = false;
 
     //private Handler angle_handler = new Handler();
     private Handler shoot_handler = new Handler();
@@ -75,7 +76,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Runnable shoot_runnable = new Runnable() {
         @Override
         public void run() {
-            prev_pitch = pitch;
+            prev_scope = scope_angle;
+
+            Log.i("Scope_Update", "" + prev_scope);
 
             shoot_handler.postDelayed(shoot_runnable, 120);
         }
@@ -138,12 +141,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     float orientation[] = new float[3];
                     SensorManager.getOrientation(rot, orientation);
 
-                    angle = (float) Math.toDegrees(orientation[0]); // azimut
-                    angle = 180.0f - Math.round(angle);
+                    float azimut = (float) Math.toDegrees(orientation[0]); // azimut
+                    compass = 180.0f - Math.round(azimut);
 
-                    roll = (float) Math.toDegrees(orientation[2]);
+                    float roll = (float) Math.toDegrees(orientation[2]);
 
-                    pitch = (float) Math.toDegrees(orientation[1]);
+                    float pitch = (float) Math.toDegrees(orientation[1]);
+                    scope_angle = pitch;
+
+
 
                     /*if(prev_tilt - pitch >= 40.0f && !shoot) {
                         textView.setText((prev_tilt - pitch) + "");
@@ -176,8 +182,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 //prev_pitch = pitch;
 
-                if(tilt < -1.2f) {
-                    Log.i("Out_shoot", "Pitch " + prev_pitch);
+                if(tilt > -0.2f && tilt < 0.2f && scope_lock) {
+                    shoot_handler.post(shoot_runnable);
+                    scope_lock = false;
+                }
+
+                if(tilt < -0.8f && !scope_lock) {
+                    shoot_handler.removeCallbacks(shoot_runnable);
+                    scope_lock = true;
                 }
 
                 if(tilt < -3.0f && tilt - prev_tilt < -5.0f && !shoot) {
@@ -193,7 +205,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     shootMP.start();
                     shoot = true;
 
-                    //Log.i("In_shoot", "Bang! " + prev_pitch);
+                    //Log.i("In_shoot", "Bang! " + prev_scope);
 
                     shoot_handler.removeCallbacks(shoot_runnable);
 
