@@ -78,7 +78,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         public void run() {
             prev_scope = scope_angle;
 
-            Log.i("Scope_Update", "" + prev_scope);
+            //Log.i("Scope_Update", "" + prev_scope);
 
             shoot_handler.postDelayed(shoot_runnable, 120);
         }
@@ -140,6 +140,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 if (success) {
                     float orientation[] = new float[3];
                     SensorManager.getOrientation(rot, orientation);
+
+                    float[] inclineGravity = vGravity.clone();
+
+                    double norm_Of_g = Math.sqrt(inclineGravity[0] * inclineGravity[0] + inclineGravity[1] * inclineGravity[1] + inclineGravity[2] * inclineGravity[2]);
+
+                    inclineGravity[0] = (float) (inclineGravity[0] / norm_Of_g);
+                    inclineGravity[1] = (float) (inclineGravity[1] / norm_Of_g);
+                    inclineGravity[2] = (float) (inclineGravity[2] / norm_Of_g);
+
+                    //Checks if device is flat on ground or not
+                    int inclination = (int) Math.round(Math.toDegrees(Math.acos(inclineGravity[2])));
+
+                    Log.i("Inclination", "" + inclination);
 
                     float azimut = (float) Math.toDegrees(orientation[0]); // azimut
                     compass = 180.0f - Math.round(azimut);
