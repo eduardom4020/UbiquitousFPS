@@ -12,6 +12,7 @@ import android.util.Log;
 import android.widget.TextView;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener{
 
@@ -31,7 +32,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     MediaPlayer shootMP;
 
     float prev_angle;
-    float prev_scope;
+    ArrayList<Float> scope_list;
     float prev_tilt;
 
     float tilt = 0;
@@ -76,11 +77,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Runnable shoot_runnable = new Runnable() {
         @Override
         public void run() {
-            prev_scope = scope_angle;
-
-            //Log.i("Scope_Update", "" + prev_scope);
-
-            shoot_handler.postDelayed(shoot_runnable, 120);
+            scope_list.add(scope_angle);
+            shoot_handler.postDelayed(shoot_runnable, 20);
         }
     };
 
@@ -101,6 +99,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //angle_handler.post(angle_runnable);
         shoot_handler.post(tilt_runnable);
         shoot_handler.post(shoot_runnable);
+
+        scope_list = new ArrayList<>();
     }
 
     protected void onResume() {
@@ -150,9 +150,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     inclineGravity[2] = (float) (inclineGravity[2] / norm_Of_g);
 
                     //Checks if device is flat on ground or not
-                    int inclination = (int) Math.round(Math.toDegrees(Math.acos(inclineGravity[2])));
+                    int inclination = (int) Math.round(Math.toDegrees(Math.asin(inclineGravity[1])));
+                    scope_angle = inclination;
 
-                    Log.i("Inclination", "" + inclination);
+                    //Log.i("Inclination", "" + inclination);
 
                     float azimut = (float) Math.toDegrees(orientation[0]); // azimut
                     compass = 180.0f - Math.round(azimut);
@@ -160,7 +161,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     float roll = (float) Math.toDegrees(orientation[2]);
 
                     float pitch = (float) Math.toDegrees(orientation[1]);
-                    scope_angle = pitch;
+                    //scope_angle = pitch;
 
 
 
@@ -218,7 +219,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     shootMP.start();
                     shoot = true;
 
-                    //Log.i("In_shoot", "Bang! " + prev_scope);
+                    shoot_handler.removeCallbacks(shoot_runnable);
+                    Float prev_scope = null;
+                    
+                    for(Float scope : scope_list) {
+                        Log.i("ScopeList", "" + scope);
+                        if(prev_scope == null) {prev_scope = scope;}
+                        else if((prev_scope >= 0 && scope < 0) || (prev_scope < 0 && scope >= 0)) {
+                            Log.i("Bang!", "" + prev_scope);
+                            break;
+                        }
+                        else {
+                            prev_scope = scope;
+                        }
+                    }
+
+                    scope_list.clear();
+
+                    //Log.i("In_shoot", "Bang! " + scope_list);
 
                     shoot_handler.removeCallbacks(shoot_runnable);
 
