@@ -9,16 +9,33 @@
     <TextView
         android:id="@+id/angle"
         android:layout_width="347dp"
-        android:layout_height="465dp"
-        android:textAlignment="center"
+        android:layout_height="137dp"
         android:gravity="center"
+        android:text="Inclinação: "
+        android:textAlignment="center"
         android:textSize="32dp"
-        android:text="Aponte o celular para frente e atire ao fazer o gesto de um recuo."
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.432"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:layout_editor_absoluteY="-169dp"
-        tools:layout_editor_absoluteX="-67dp" />
+        app:layout_constraintVertical_bias="0.262" />
+
+    <TextView
+        android:id="@+id/bang"
+        android:layout_width="346dp"
+        android:layout_height="98dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="60dp"
+        android:text="Bang!  "
+        android:textAlignment="center"
+        android:textSize="32dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/angle"
+        app:layout_constraintVertical_bias="0.109" />
 
 </android.support.constraint.ConstraintLayout>

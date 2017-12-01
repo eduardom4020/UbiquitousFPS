@@ -25,7 +25,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     float[] vGeomagnetic;
     float[] vTilt;
 
-    TextView textView;
+    TextView inclination_text;
+    TextView bang_text;
 
     boolean shoot = false;
 
@@ -77,7 +78,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Runnable shoot_runnable = new Runnable() {
         @Override
         public void run() {
-            scope_list.add(scope_angle);
+            //scope_list.add(scope_angle);
+
+            //Log.i("Scope", ""+scope_angle);
+
+            inclination_text.setText(""+scope_angle);
+
             shoot_handler.postDelayed(shoot_runnable, 20);
         }
     };
@@ -92,7 +98,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         magnetometer = sensor_manager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         gyroscope = sensor_manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 
-        textView = (TextView) findViewById(R.id.angle);
+        inclination_text = (TextView) findViewById(R.id.angle);
+        bang_text = (TextView) findViewById(R.id.bang);
 
         shootMP = MediaPlayer.create(this, R.raw.shoot);
 
@@ -141,7 +148,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     float orientation[] = new float[3];
                     SensorManager.getOrientation(rot, orientation);
 
-                    float[] inclineGravity = vGravity.clone();
+                    /*float[] inclineGravity = vGravity.clone();
 
                     double norm_Of_g = Math.sqrt(inclineGravity[0] * inclineGravity[0] + inclineGravity[1] * inclineGravity[1] + inclineGravity[2] * inclineGravity[2]);
 
@@ -151,9 +158,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                     //Checks if device is flat on ground or not
                     int inclination = (int) Math.round(Math.toDegrees(Math.asin(inclineGravity[1])));
-                    scope_angle = inclination;
+                    //scope_angle = inclination;
 
-                    //Log.i("Inclination", "" + inclination);
+                    //Log.i("Inclination", "" + inclination);*/
 
                     float azimut = (float) Math.toDegrees(orientation[0]); // azimut
                     compass = 180.0f - Math.round(azimut);
@@ -161,8 +168,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     float roll = (float) Math.toDegrees(orientation[2]);
 
                     float pitch = (float) Math.toDegrees(orientation[1]);
-                    //scope_angle = pitch;
-
+                    scope_angle = pitch;
+                    if(!shoot) {
+                        scope_list.add(scope_angle);
+                    }
 
 
                     /*if(prev_tilt - pitch >= 40.0f && !shoot) {
@@ -196,15 +205,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 //prev_pitch = pitch;
 
-                if(tilt > -0.2f && tilt < 0.2f && scope_lock) {
-                    shoot_handler.post(shoot_runnable);
-                    scope_lock = false;
-                }
-
-                if(tilt < -0.8f && !scope_lock) {
-                    shoot_handler.removeCallbacks(shoot_runnable);
-                    scope_lock = true;
-                }
+//                if(tilt > -0.2f && tilt < 0.2f && scope_lock) {
+//                    shoot_handler.post(shoot_runnable);
+//                    scope_lock = false;
+//                }
+//
+//                if(tilt < -0.8f && !scope_lock) {
+//                    shoot_handler.removeCallbacks(shoot_runnable);
+//                    scope_lock = true;
+//                }
 
                 if(tilt < -3.0f && tilt - prev_tilt < -5.0f && !shoot) {
                     if(shootMP.isPlaying()) {
@@ -221,38 +230,58 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                     shoot_handler.removeCallbacks(shoot_runnable);
                     Float prev_scope = null;
+
+                    int count = 0;
                     
                     for(Float scope : scope_list) {
-                        Log.i("ScopeList", "" + scope);
-                        if(prev_scope == null) {prev_scope = scope;}
+                        if(prev_scope == null) {
+                            prev_scope = scope;
+                        }
                         else if((prev_scope >= 0 && scope < 0) || (prev_scope < 0 && scope >= 0)) {
-                            Log.i("Bang!", "" + prev_scope);
                             break;
                         }
                         else {
-                            prev_scope = scope;
+                            prev_scope += scope;
+                            count += 1;
                         }
                     }
+
+                    int limit = count - 30;
+
+                    float sum = 0;
+                    int length =0;
+
+                    while(count > 0 && count > limit) {
+                        sum += scope_list.get(count);
+                        length += 1;
+                        count -= 1;
+
+                        Log.i("Traceback", ""+scope_list.get(count));
+                    }
+                    Log.i("List End", "--------------------------------------");
+
+                    prev_scope = sum/length;
+
+                    bang_text.setText("" + prev_scope);
 
                     scope_list.clear();
 
                     //Log.i("In_shoot", "Bang! " + scope_list);
 
-                    shoot_handler.removeCallbacks(shoot_runnable);
-
                     new Handler().postDelayed(new Runnable() {
                         @Override
                         public void run() {
                             //textView.setText("");
+//                            scope_list.clear();
                             shoot_handler.post(shoot_runnable);
                             shoot = false;
                         }
-                    }, 300);
+                    }, 500);
                 }
             }
         }
         else {
-            textView.setText("Erro: Gyroscópio não encontrado.");
+            //textView.setText("Erro: Gyroscópio não encontrado.");
         }
     }
 
