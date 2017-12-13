@@ -1,19 +1,31 @@
 package compubiquia.ufc.br.sensortest;
 
+import android.Manifest;
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.media.MediaPlayer;
 import android.os.Handler;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -21,7 +33,7 @@ import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener{
+public class MainActivity extends AppCompatActivity implements SensorEventListener, LocationListener {
 
     private SensorManager sensor_manager;
     Sensor accelerometer;
@@ -34,6 +46,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     TextView inclination_text;
     TextView bang_text;
+    TextView compass_text;
+    TextView hp_text;
+    TextView id_text;
 
     boolean shoot = false;
 
@@ -89,26 +104,38 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
             //Log.i("Scope", ""+scope_angle);
 
-            inclination_text.setText(""+scope_angle);
+            inclination_text.setText("" + scope_angle);
 
             shoot_handler.postDelayed(shoot_runnable, 20);
         }
     };
 
     private Socket mSocket;
+    private Timer timer = new Timer();
+    private LocationManager locationManager;
+    private static final int HANDLER_DELAY = 1000 * 5;
+    private static final int GPS_TIME_INTERVAL = 4000; // get gps location every 1 min
+    private static final int GPS_DISTANCE = 1;
+    private final Handler gpsHandler = new Handler();
+    private String hp;
+    private String id;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        sensor_manager = (SensorManager)getSystemService(SENSOR_SERVICE);
+        sensor_manager = (SensorManager) getSystemService(SENSOR_SERVICE);
         accelerometer = sensor_manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         magnetometer = sensor_manager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         gyroscope = sensor_manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        locationManager = (LocationManager) MainActivity.this.getSystemService(Context.LOCATION_SERVICE);
 
         inclination_text = (TextView) findViewById(R.id.angle);
         bang_text = (TextView) findViewById(R.id.bang);
+        compass_text = (TextView) findViewById(R.id.compass);
+        hp_text = (TextView) findViewById(R.id.hp);
+        id_text = (TextView) findViewById(R.id.idU);
 
         shootMP = MediaPlayer.create(this, R.raw.shoot);
 
@@ -131,14 +158,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             throw new RuntimeException(e);
         }
 
+        mSocket.on("get_id", idMessage);
+        mSocket.on("get_hp", hpMessage);
+
         mSocket.connect();
 
 
+        gpsHandler.postDelayed(new Runnable() {
+            public void run() {
+                sendGPSData();
+                gpsHandler.postDelayed(this, HANDLER_DELAY);
+            }
+        }, HANDLER_DELAY);
+
 
         //mSocket.on("message", onNewMessage);
-
-
-
 
 
     }
@@ -168,45 +202,111 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onDestroy();
 
         mSocket.disconnect();
+        mSocket.off("get_id", idMessage);
+        mSocket.off("get_hp", hpMessage);
         //mSocket.off("message", onNewMessage);
         //mSocket.off("login", onLogin);
     }
 
-    private Emitter.Listener onNewMessage = new Emitter.Listener() {
+
+    //private EditText mInputMessageView;
+
+    private void sendShootData(Float compass, Float prev_scope) {
+        //String message = mInputMessageView.getText().toString().trim();
+        //String message = "The gun fired!!!";
+        /*if (TextUtils.isEmpty(message)) {
+            return;
+        }*/
+
+        //mInputMessageView.setText("");
+        //mSocket.emit("message", message);
+        String shoot = prev_scope + " " + compass;
+        mSocket.emit("shoot", shoot);
+    }
+
+    private void sendGPSData() {
+
+        if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return;
+            }
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                    GPS_TIME_INTERVAL, GPS_DISTANCE, this);
+
+            Location gpslocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+
+
+            String location = gpslocation.getLatitude()+" "+gpslocation.getLongitude();
+            mSocket.emit("set_location", location);
+
+
+        }
+    }
+
+    private Emitter.Listener hpMessage = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
-            MainActivity.this.runOnUiThread(new Runnable() {
+            (MainActivity.this).runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    JSONObject data = (JSONObject) args[0];
-                    String username;
-                    String message;
+                    Integer data = (Integer) args[0];
+
+                    String hp;
                     try {
-                        username = data.getString("username");
-                        message = data.getString("message");
-                    } catch (JSONException e) {
-                        //Log.e(TAG, e.getMessage());
+                        //hp = data.getString("max_hp");
+                    } catch (Exception e) {
                         return;
                     }
 
-                    //removeTyping(username);
-                    //addMessage(username, message);
+                    // add the message to view
+                    addHP("HP: "+data.toString());
                 }
             });
         }
     };
 
-    //private EditText mInputMessageView;
+    private Emitter.Listener idMessage = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            (MainActivity.this).runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    String data = (String) args[0];
 
-    private void attemptSend() {
-        //String message = mInputMessageView.getText().toString().trim();
-        String message = "The gun fired!!!";
-        if (TextUtils.isEmpty(message)) {
-            return;
+                    String hp;
+                    try {
+                        //hp = data.getString("max_hp");
+                    } catch (Exception e) {
+                        return;
+                    }
+
+                    final int mid = data.length() / 2; //get the middle of the String
+                    String[] parts = {data.substring(0, mid),data.substring(mid)};
+
+                    // add the message to view
+                    addID("ID: "+parts[0]);
+                }
+            });
         }
+    };
 
-        //mInputMessageView.setText("");
-        mSocket.emit("message", message);
+    public void addHP(String hp){
+        this.hp = hp;
+        hp_text.setText(this.hp);
+    }
+
+    public void addID(String id){
+        this.id = id;
+        id_text.setText(this.id);
     }
 
     @Override
@@ -243,7 +343,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                     float azimut = (float) Math.toDegrees(orientation[0]); // azimut
                     compass = 180.0f - Math.round(azimut);
-
+                    //compass = azimut;
                     float roll = (float) Math.toDegrees(orientation[2]);
 
                     float pitch = (float) Math.toDegrees(orientation[1]);
@@ -341,14 +441,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                     prev_scope = sum/length;
 
-                    bang_text.setText("" + prev_scope);
+                    bang_text.setText(prev_scope.toString());
+                    compass_text.setText(Float.toString(compass));
+
+
 
                     scope_list.clear();
 
                     //Log.i("In_shoot", "Bang! " + scope_list);
 
                     // **************************** The gun fired at this moment ****************************
-                    attemptSend();
+                    sendShootData(compass, prev_scope);
 
                     new Handler().postDelayed(new Runnable() {
                         @Override
@@ -369,6 +472,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
+
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+
+        locationManager.removeUpdates(this);
+        //Toast.makeText(MainActivity.this,"Lat: "+location.getLatitude() + " Long: " + location.getLongitude() + " ", Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void onStatusChanged(String s, int i, Bundle bundle) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String s) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String s) {
 
     }
 }
