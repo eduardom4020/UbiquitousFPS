@@ -1,7 +1,12 @@
 package compubiquia.ufc.br.sensortest;
 
 import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -11,7 +16,10 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.MediaPlayer;
+import android.os.Build;
 import android.os.Handler;
+import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -23,6 +31,7 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -35,6 +44,8 @@ import io.socket.emitter.Emitter;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener, LocationListener {
 
+    private static final int REQUEST_CODE_LOC = 11;
+    private double distance;
     private SensorManager sensor_manager;
     Sensor accelerometer;
     Sensor magnetometer;
@@ -67,6 +78,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     //private Handler angle_handler = new Handler();
     private Handler shoot_handler = new Handler();
+
+    private BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
     /*
     private Runnable angle_runnable = new Runnable() {
         @Override
@@ -83,6 +96,38 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             tilt_handler.postDelayed(tilt_runnable, 200);
         }
     };*/
+
+    private final BroadcastReceiver receiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if(BluetoothDevice.ACTION_FOUND.equals(action)) {
+                // RSSI
+                int rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE);
+                // Distância calculada
+                String name = intent.getStringExtra(BluetoothDevice.EXTRA_NAME);
+                if(name != null && name.equals("TMR@Phone")){
+                    distance = calculateDistance(rssi);
+                }
+            }
+        }
+    };
+
+    private double calculateDistance(int rssi) {
+        int txPower = -59;
+        if (rssi == 0) {
+            return -1.0;
+        }
+        double ratio = rssi * 1.0 / txPower;
+        if (ratio < 1.0) {
+            return Math.pow(ratio, 10);
+        }
+        else {
+            double distance =  (0.89976) * Math.pow(ratio, 7.7095) + 0.111;
+            return distance;
+        }
+    }
 
     private Runnable tilt_runnable = new Runnable() {
         @Override
@@ -113,7 +158,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Socket mSocket;
     private Timer timer = new Timer();
     private LocationManager locationManager;
-    private static final int HANDLER_DELAY = 1000 * 5;
+    private static final int HANDLER_DELAY = 500;
     private static final int GPS_TIME_INTERVAL = 4000; // get gps location every 1 min
     private static final int GPS_DISTANCE = 1;
     private final Handler gpsHandler = new Handler();
@@ -124,6 +169,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            accessLocationPermission();
+        }
 
         sensor_manager = (SensorManager) getSystemService(SENSOR_SERVICE);
         accelerometer = sensor_manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -163,13 +212,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         mSocket.connect();
 
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothDevice.ACTION_FOUND);
+        registerReceiver(receiver, filter);
 
         gpsHandler.postDelayed(new Runnable() {
             public void run() {
                 sendGPSData();
+                btAdapter.startDiscovery();
                 gpsHandler.postDelayed(this, HANDLER_DELAY);
             }
         }, HANDLER_DELAY);
+
+
 
 
         //mSocket.on("message", onNewMessage);
@@ -206,12 +261,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mSocket.off("get_hp", hpMessage);
         //mSocket.off("message", onNewMessage);
         //mSocket.off("login", onLogin);
+        unregisterReceiver(receiver);
     }
-
 
     //private EditText mInputMessageView;
 
-    private void sendShootData(Float compass, Float prev_scope) {
+    private void sendShootData(Float compass, double distance) {
         //String message = mInputMessageView.getText().toString().trim();
         //String message = "The gun fired!!!";
         /*if (TextUtils.isEmpty(message)) {
@@ -220,7 +275,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         //mInputMessageView.setText("");
         //mSocket.emit("message", message);
-        String shoot = prev_scope + " " + compass;
+        String shoot = distance + " " + compass;
         mSocket.emit("shoot", shoot);
     }
 
@@ -245,8 +300,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
 
-            String location = gpslocation.getLatitude()+" "+gpslocation.getLongitude();
-            mSocket.emit("set_location", location);
+            //String location = gpslocation.getLatitude()+" "+gpslocation.getLongitude();
+            //mSocket.emit("set_location", location);
 
 
         }
@@ -451,7 +506,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     //Log.i("In_shoot", "Bang! " + scope_list);
 
                     // **************************** The gun fired at this moment ****************************
-                    sendShootData(compass, prev_scope);
+                    sendShootData(compass, distance);
 
                     new Handler().postDelayed(new Runnable() {
                         @Override
@@ -495,5 +550,43 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void onProviderDisabled(String s) {
 
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    private void accessLocationPermission() {
+        int accessCoarseLocation = checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION);
+        int accessFineLocation   = checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION);
+
+        List<String> listRequestPermission = new ArrayList<String>();
+
+        if (accessCoarseLocation != PackageManager.PERMISSION_GRANTED) {
+            listRequestPermission.add(android.Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+        if (accessFineLocation != PackageManager.PERMISSION_GRANTED) {
+            listRequestPermission.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+
+        if (!listRequestPermission.isEmpty()) {
+            String[] strRequestPermission = listRequestPermission.toArray(new String[listRequestPermission.size()]);
+            requestPermissions(strRequestPermission, REQUEST_CODE_LOC);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_CODE_LOC:
+                if (grantResults.length > 0) {
+                    for (int gr : grantResults) {
+                        if (gr != PackageManager.PERMISSION_GRANTED) {
+                            return;
+                        }
+                    }
+                    btAdapter.startDiscovery();
+                }
+                break;
+            default:
+                return;
+        }
     }
 }
