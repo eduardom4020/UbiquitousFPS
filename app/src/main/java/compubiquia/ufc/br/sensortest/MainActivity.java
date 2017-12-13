@@ -8,11 +8,18 @@ import android.media.MediaPlayer;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.TextView;
-
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import io.socket.client.IO;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener{
 
@@ -88,6 +95,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     };
 
+    private Socket mSocket;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -108,6 +117,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         shoot_handler.post(shoot_runnable);
 
         scope_list = new ArrayList<>();
+
+        // Connection of the socket
+
+        //SocketApplication app = (SocketApplication) this.getApplication();
+
+        //mSocket = app.getSocket();
+
+
+        try {
+            mSocket = IO.socket(Constants.SERVER_URL);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        mSocket.connect();
+
+
+
+        //mSocket.on("message", onNewMessage);
+
+
+
+
+
     }
 
     protected void onResume() {
@@ -128,6 +161,52 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //angle_handler.removeCallbacks(angle_runnable);
         shoot_handler.removeCallbacks(tilt_runnable);
         shoot_handler.removeCallbacks(shoot_runnable);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        mSocket.disconnect();
+        //mSocket.off("message", onNewMessage);
+        //mSocket.off("login", onLogin);
+    }
+
+    private Emitter.Listener onNewMessage = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            MainActivity.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    JSONObject data = (JSONObject) args[0];
+                    String username;
+                    String message;
+                    try {
+                        username = data.getString("username");
+                        message = data.getString("message");
+                    } catch (JSONException e) {
+                        //Log.e(TAG, e.getMessage());
+                        return;
+                    }
+
+                    //removeTyping(username);
+                    //addMessage(username, message);
+                }
+            });
+        }
+    };
+
+    //private EditText mInputMessageView;
+
+    private void attemptSend() {
+        //String message = mInputMessageView.getText().toString().trim();
+        String message = "The gun fired!!!";
+        if (TextUtils.isEmpty(message)) {
+            return;
+        }
+
+        //mInputMessageView.setText("");
+        mSocket.emit("message", message);
     }
 
     @Override
@@ -267,6 +346,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     scope_list.clear();
 
                     //Log.i("In_shoot", "Bang! " + scope_list);
+
+                    // **************************** The gun fired at this moment ****************************
+                    attemptSend();
 
                     new Handler().postDelayed(new Runnable() {
                         @Override
