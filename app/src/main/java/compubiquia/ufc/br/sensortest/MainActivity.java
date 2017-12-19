@@ -60,6 +60,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     TextView compass_text;
     TextView hp_text;
     TextView id_text;
+    TextView position_text;
 
     boolean shoot = false;
 
@@ -80,22 +81,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Handler shoot_handler = new Handler();
 
     private BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
-    /*
-    private Runnable angle_runnable = new Runnable() {
-        @Override
-        public void run() {
-            prev_angle = angle;
-            angle_handler.postDelayed(angle_runnable, 200);
-        }
-    };
-
-    private Runnable tilt_runnable = new Runnable() {
-        @Override
-        public void run() {
-            prev_tilt = pitch;
-            tilt_handler.postDelayed(tilt_runnable, 200);
-        }
-    };*/
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
 
@@ -149,9 +134,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
             //Log.i("Scope", ""+scope_angle);
 
-            inclination_text.setText("" + scope_angle);
-
-            shoot_handler.postDelayed(shoot_runnable, 20);
+//            inclination_text.setText("" + scope_angle);
+//
+//            shoot_handler.postDelayed(shoot_runnable, 20);
         }
     };
 
@@ -180,11 +165,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gyroscope = sensor_manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         locationManager = (LocationManager) MainActivity.this.getSystemService(Context.LOCATION_SERVICE);
 
-        inclination_text = (TextView) findViewById(R.id.angle);
-        bang_text = (TextView) findViewById(R.id.bang);
+//        inclination_text = (TextView) findViewById(R.id.angle);
+//        bang_text = (TextView) findViewById(R.id.bang);
         compass_text = (TextView) findViewById(R.id.compass);
         hp_text = (TextView) findViewById(R.id.hp);
         id_text = (TextView) findViewById(R.id.idU);
+        position_text = findViewById(R.id.location_tv);
 
         shootMP = MediaPlayer.create(this, R.raw.shoot);
 
@@ -219,17 +205,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gpsHandler.postDelayed(new Runnable() {
             public void run() {
                 sendGPSData();
-                btAdapter.startDiscovery();
+                //btAdapter.startDiscovery();
                 gpsHandler.postDelayed(this, HANDLER_DELAY);
             }
         }, HANDLER_DELAY);
-
-
-
-
-        //mSocket.on("message", onNewMessage);
-
-
     }
 
     protected void onResume() {
@@ -293,14 +272,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 // for ActivityCompat#requestPermissions for more details.
                 return;
             }
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                    GPS_TIME_INTERVAL, GPS_DISTANCE, this);
-
+//            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+//                    GPS_TIME_INTERVAL, GPS_DISTANCE, this);
+            Log.i("aa", "oi");
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 200, 0, this);
             Location gpslocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 
+            String location = gpslocation.getLatitude()+" "+gpslocation.getLongitude();
+            position_text.setText(location);
 
-
-            //String location = gpslocation.getLatitude()+" "+gpslocation.getLongitude();
             //mSocket.emit("set_location", location);
 
 
@@ -380,25 +360,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 boolean success = SensorManager.getRotationMatrix(rot, I, vGravity, vGeomagnetic);
                 if (success) {
                     float orientation[] = new float[3];
-                    SensorManager.getOrientation(rot, orientation);
+                    float outRot[] = new float[9];
 
-                    /*float[] inclineGravity = vGravity.clone();
+                    SensorManager.remapCoordinateSystem(rot, SensorManager.AXIS_X,
+                            SensorManager.AXIS_MINUS_Y, outRot);
+                    SensorManager.getOrientation(outRot, orientation);
 
-                    double norm_Of_g = Math.sqrt(inclineGravity[0] * inclineGravity[0] + inclineGravity[1] * inclineGravity[1] + inclineGravity[2] * inclineGravity[2]);
-
-                    inclineGravity[0] = (float) (inclineGravity[0] / norm_Of_g);
-                    inclineGravity[1] = (float) (inclineGravity[1] / norm_Of_g);
-                    inclineGravity[2] = (float) (inclineGravity[2] / norm_Of_g);
-
-                    //Checks if device is flat on ground or not
-                    int inclination = (int) Math.round(Math.toDegrees(Math.asin(inclineGravity[1])));
-                    //scope_angle = inclination;
-
-                    //Log.i("Inclination", "" + inclination);*/
-
+                    //need to prevent azimut changes by rotating cellphone
                     float azimut = (float) Math.toDegrees(orientation[0]); // azimut
                     compass = 180.0f - Math.round(azimut);
-                    //compass = azimut;
+
+                    compass_text.setText(compass + "º");
+
                     float roll = (float) Math.toDegrees(orientation[2]);
 
                     float pitch = (float) Math.toDegrees(orientation[1]);
@@ -406,31 +379,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     if(!shoot) {
                         scope_list.add(scope_angle);
                     }
-
-
-                    /*if(prev_tilt - pitch >= 40.0f && !shoot) {
-                        textView.setText((prev_tilt - pitch) + "");
-
-                        if(shootMP.isPlaying()) {
-                            shootMP.stop();
-                            try {
-                                shootMP.prepare();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        shootMP.start();
-                        shoot = true;
-
-                        new Handler().postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                //textView.setText("");
-                                shoot = false;
-                            }
-                        }, 300);
-                    }*/
                 }
             }
 
@@ -495,9 +443,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     Log.i("List End", "--------------------------------------");
 
                     prev_scope = sum/length;
+                    //use socket here with prev_scope and compass
 
-                    bang_text.setText(prev_scope.toString());
-                    compass_text.setText(Float.toString(compass));
+//                    bang_text.setText(prev_scope.toString());
+//                    compass_text.setText(Float.toString(compass));
 
 
 

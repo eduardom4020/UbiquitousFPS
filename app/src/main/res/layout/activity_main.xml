@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context="compubiquia.ufc.br.sensortest.MainActivity">
 
-    <TextView
+    <!--<TextView
         android:id="@+id/angle"
         android:layout_width="317dp"
         android:layout_height="112dp"
@@ -36,47 +36,68 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/angle"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintVertical_bias="0.0" />-->
 
     <TextView
         android:id="@+id/compass"
         android:layout_width="118dp"
         android:layout_height="57dp"
+        android:layout_marginTop="8dp"
         android:text="Compass"
         android:textAlignment="center"
         android:textSize="22dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/bang"
-        app:layout_constraintVertical_bias="0.311" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.43" />
 
     <TextView
         android:id="@+id/idU"
         android:layout_width="161dp"
         android:layout_height="53dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginTop="80dp"
         android:text="ID"
         android:textAlignment="center"
         android:textSize="18dp"
-        app:layout_constraintBottom_toTopOf="@+id/angle"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.064"
+        app:layout_constraintHorizontal_bias="0.071"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.516" />
+        app:layout_constraintVertical_bias="0.0" />
 
     <TextView
         android:id="@+id/hp"
         android:layout_width="158dp"
         android:layout_height="52dp"
+        android:layout_marginBottom="8dp"
         android:text="HP"
         android:textAlignment="center"
         android:textSize="18dp"
-        app:layout_constraintBottom_toTopOf="@+id/angle"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.68"
+        app:layout_constraintHorizontal_bias="0.673"
         app:layout_constraintStart_toEndOf="@+id/idU"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.507" />
+        app:layout_constraintVertical_bias="0.177" />
+
+    <TextView
+        android:id="@+id/location_tv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:text="Location"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.501"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/compass"
+        app:layout_constraintVertical_bias="0.218" />
 
 </android.support.constraint.ConstraintLayout>
