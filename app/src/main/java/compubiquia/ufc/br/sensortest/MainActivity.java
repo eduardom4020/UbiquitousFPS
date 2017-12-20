@@ -141,7 +141,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private Socket mSocket;
     private Timer timer = new Timer();
-    private LocationManager locationManager;
     private static final int HANDLER_DELAY = 500;
     private static final int GPS_TIME_INTERVAL = 4000; // get gps location every 1 min
     private static final int GPS_DISTANCE = 1;
@@ -180,15 +179,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            accessLocationPermission();
-        }
-
         sensor_manager = (SensorManager) getSystemService(SENSOR_SERVICE);
         accelerometer = sensor_manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         magnetometer = sensor_manager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         gyroscope = sensor_manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        locationManager = (LocationManager) MainActivity.this.getSystemService(Context.LOCATION_SERVICE);
 
 //        inclination_text = (TextView) findViewById(R.id.angle);
 //        bang_text = (TextView) findViewById(R.id.bang);
@@ -250,7 +244,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         mSocket.connect();
 
-        startLocationUpdates();
     }
 
     private void updateValuesFromBundle(Bundle savedInstanceState) {
@@ -737,7 +730,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void onLocationChanged(Location location) {
 
-        locationManager.removeUpdates(this);
         //Toast.makeText(MainActivity.this,"Lat: "+location.getLatitude() + " Long: " + location.getLongitude() + " ", Toast.LENGTH_LONG).show();
     }
 
@@ -754,25 +746,5 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void onProviderDisabled(String s) {
 
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.M)
-    private void accessLocationPermission() {
-        int accessCoarseLocation = checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION);
-        int accessFineLocation   = checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION);
-
-        List<String> listRequestPermission = new ArrayList<String>();
-
-        if (accessCoarseLocation != PackageManager.PERMISSION_GRANTED) {
-            listRequestPermission.add(android.Manifest.permission.ACCESS_COARSE_LOCATION);
-        }
-        if (accessFineLocation != PackageManager.PERMISSION_GRANTED) {
-            listRequestPermission.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
-        }
-
-        if (!listRequestPermission.isEmpty()) {
-            String[] strRequestPermission = listRequestPermission.toArray(new String[listRequestPermission.size()]);
-            requestPermissions(strRequestPermission, REQUEST_CODE_LOC);
-        }
     }
 }
