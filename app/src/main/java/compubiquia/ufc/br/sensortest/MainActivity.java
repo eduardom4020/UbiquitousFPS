@@ -16,6 +16,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -25,8 +26,15 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapView;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -61,6 +69,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     TextView hp_text;
     TextView id_text;
     TextView position_text;
+    Button view_in_map;
 
     boolean shoot = false;
 
@@ -171,6 +180,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         hp_text = (TextView) findViewById(R.id.hp);
         id_text = (TextView) findViewById(R.id.idU);
         position_text = findViewById(R.id.location_tv);
+        view_in_map = findViewById(R.id.bt_view_map);
+
+        view_in_map.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(position_text.getText() != null) {
+                    String[] tokens = position_text.getText().toString().split(" ");
+                    String location = tokens[0] + "," + tokens[1];
+
+                    Intent intent = new Intent(android.content.Intent.ACTION_VIEW,
+                    Uri.parse("http://maps.google.com/maps?q=" + location + "&center=" + location));
+                    startActivity(intent);
+                }
+            }
+        });
 
         shootMP = MediaPlayer.create(this, R.raw.shoot);
 
@@ -274,16 +298,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
 //            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
 //                    GPS_TIME_INTERVAL, GPS_DISTANCE, this);
-            Log.i("aa", "oi");
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 200, 0, this);
+            Log.i("GPS", "repeating!");
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, this);
             Location gpslocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 
             String location = gpslocation.getLatitude()+" "+gpslocation.getLongitude();
             position_text.setText(location);
 
             //mSocket.emit("set_location", location);
-
-
         }
     }
 
