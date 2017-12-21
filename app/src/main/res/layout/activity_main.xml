@@ -50,7 +50,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.43" />
+        app:layout_constraintVertical_bias="0.307" />
 
     <TextView
         android:id="@+id/idU"
@@ -60,7 +60,8 @@
         android:layout_marginTop="80dp"
         android:text="ID"
         android:textAlignment="center"
-        android:textSize="18dp"
+        android:gravity="center"
+        android:textSize="12sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.071"
@@ -73,6 +74,7 @@
         android:layout_width="158dp"
         android:layout_height="52dp"
         android:layout_marginBottom="8dp"
+        android:gravity="center"
         android:text="HP"
         android:textAlignment="center"
         android:textSize="18dp"
@@ -98,7 +100,7 @@
         app:layout_constraintHorizontal_bias="0.501"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/compass"
-        app:layout_constraintVertical_bias="0.218" />
+        app:layout_constraintVertical_bias="0.0" />
 
     <Button
         android:id="@+id/bt_view_map"
@@ -111,8 +113,26 @@
         android:text="Ver no Google Maps"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.04"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/location_tv" />
+        app:layout_constraintTop_toBottomOf="@+id/location_tv"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/bt_test_doll"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:text="Boneco de Teste"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.913"
+        app:layout_constraintStart_toEndOf="@+id/bt_view_map"
+        app:layout_constraintTop_toBottomOf="@+id/location_tv"
+        app:layout_constraintVertical_bias="0.0" />
 
 
 </android.support.constraint.ConstraintLayout>
